@@ -1,0 +1,78 @@
+# Default values for chart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Usage: 
+# You should use production values in this file, for you can deploy to production with minimal changes with helm command.
+# And copy this file to .gitlab/auto-deploy-values.yaml under your repository and modify for gitlab override values.
+
+nameOverride: ""
+fullnameOverride: ""
+releaseOverride: ""
+
+# when deployed by gitlab, this will be overrided.
+image:
+  repository: aws_account_id.dkr.ecr.us-east-1.amazonaws.com/user-api
+  tag: latest
+  pullPolicy: IfNotPresent
+  registryAuths:
+  - registry: 
+    username: ""
+    password: ""
+    email: ""
+
+# service config
+service: 
+  enabled: true
+  type: ClusterIP
+  port: 5000
+
+# ingress config
+ingress:
+  enabled: true
+
+# application config
+application: 
+  dbHost: mariadbtest
+  config:
+    debugLv: 0
+
+# persitent volume claim
+pvc:
+  enabled: false
+  keep: false
+  size: 50Gi
+
+# configmaps
+configmaps:
+  enabled: false
+
+# secrets to be added, simply comment if not required
+secrets:
+  dbuser: ""
+  dbpass: ""
+
+# cronjobs
+cronjobs:
+  enabled: false
+  schedule: "0 0 * * *"
+
+# jobs - run once on creation
+jobs:
+  enabled: false
+
+# pod configurations
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+testDb:
+  name: mariadbtest
+  rootPass: mypass
+
+# gitlab parameters used by the chart, place default values here for production deployment without gitlab.
+gitlab:
+  app: user-api
+  env: "production"
+  envName: "production"
+  envURL: "http://user-api"

@@ -1,0 +1,7 @@
+FROM python:alpine-3.8
+
+RUN mkdir -p /scripts && \
+    apk add bash awscli git terraform
+COPY eks-setup.sh /scripts/eks-setup.sh
+RUN chmod 755 /scripts/eks-setup.sh
+CMD /scripts/eks-setup.sh

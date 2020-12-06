@@ -1,0 +1,22 @@
+# gitlab pipeline to run script for creating EKS with terraform
+
+setup:
+  image: "aws_account_id.dkr.ecr.us-east-1.amazonaws.com/eks-admin-image:v0.1.0"
+  script:
+    - |
+      # prepare AWS config/credential files
+      # AWS_ACCESS_ID & AWS_SECRET_KEY should be defined in CI/CD>variables
+      AWS_CRED="~/.aws/credential"
+      AWS_CONF="~/.aws/config"
+      mkdir -p $(dirname $AWS_CRED)
+      echo "[default]" > $AWS_CRED
+      echo "aws_access_key_id=$AWS_ACCESS_ID" >> $AWS_CRED
+      echo "aws_secret_access_key=$AWS_SECRET_KEY" >> $AWS_CRED
+      echo "[default]" > $AWS_CONF
+      echo "region=ap-east-1" >> $AWS_CONF
+      echo "output=json" >> $AWS_CONF
+      # execute setup script
+      /scripts/eks-setup.sh
+  rules:
+    - if '$CI_COMMIT_BRANCH != "master"'
+      when: never

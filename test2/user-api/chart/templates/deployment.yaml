@@ -1,0 +1,131 @@
+{{- $fullName := .Values.gitlab.app -}}
+{{- $svcPort := .Values.service.port -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName | quote }}
+  annotations: 
+    app.gitlab.com/env: {{ .Values.gitlab.env }}
+    app.gitlab.com/app: {{ .Values.gitlab.app }}
+  labels:
+{{ include "chart.labels" . | indent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $fullName | quote }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      name: {{ $fullName | quote }}
+      labels:
+        app.kubernetes.io/name: {{ $fullName | quote }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      annotations: 
+        app.gitlab.com/env: {{ .Values.gitlab.env }}
+        app.gitlab.com/app: {{ .Values.gitlab.app }}
+    spec:
+    {{- with .Values.image.secrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+#    {{- if eq .Values.gitlab.env "production" }}
+#      imagePullSecrets:
+#      - name: "{{ $fullName }}-registry"
+#    {{- end }}
+      containers:
+      - name: {{ $fullName | quote }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+        - name: MYSQL_HOST
+          value: {{ .Values.application.dbHost | quote }}
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: "{{ $fullName }}"
+              key: dbuser
+        - name: MYSQL_PASSWD
+          valueFrom:
+            secretKeyRef:
+              name: "{{ $fullName }}"
+              key: dbpass
+        ports:
+        - name: main-port
+          containerPort: {{ $svcPort }}
+          protocol: TCP
+        livenessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /healthcheck
+            port: main-port
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+        readinessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /healthcheck
+            port: main-port
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.testDb.name | quote }}
+  labels:
+{{ include "chart.labels" . | indent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.testDb.name | quote }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      name: {{ .Values.testDb.name | quote }}
+      labels:
+        app.kubernetes.io/name: {{ .Values.testDb.name | quote }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: {{ .Values.testDb.name | quote }}
+        image: "mariadb/server:10.3"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: {{ .Values.testDb.rootPass | quote }}
+        ports:
+        - name: mysql-port
+          containerPort: 3306
+          protocol: TCP
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

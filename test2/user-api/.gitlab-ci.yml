@@ -1,0 +1,32 @@
+variables:
+  POSTGRES_ENABLED: "false"
+  CI_DEPLOY_USER: "<DEPLOY_USER>"
+  CI_DEPLOY_PASSWORD: "<DEPLOY_TOKEN>"
+  POSTGRES_ENABLED: "false"
+  ROLLOUT_STATUS_DISABLED: "true"
+  TEST_DISABLED: "true"
+  PERFORMANCE_DISABLED: "true"
+
+build:
+  variables:
+    DOCKER_OPTS: "--insecure-registry=registry-km01.ap.elcompanies.net --mtu=1450"
+  services:
+    - lordgaav/dind-options:latest
+  before_script: 
+    - export AUTO_DEVOPS_BUILD_IMAGE_EXTRA_ARGS="--network host"
+
+secret_detection:
+  before_script: 
+    - git config --global http.sslVerify false
+
+.auto-deploy:
+  before_script:
+    - |
+      export HELM_UPGRADE_EXTRA_ARGS="--set secrets.dbUser=$MYSQL_USER --set secrets.dbpass=$MYSQL_PASSWD"
+  after_script:
+    - |
+      myPod="$(kubectl -n $KUBE_NAMESPACE get pods --selector=app.kubernetes.io/name=$CI_PROJECT_PATH_SLUG -o jsonpath='{.items[0].metadata.name}')"
+      kubectl -n $KUBE_NAMESPACE exec -it $myPod -- /usr/local/bin/pytest
+
+include:
+  - template: Auto-DevOps.gitlab-ci.yml

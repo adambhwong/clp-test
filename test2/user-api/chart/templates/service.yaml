@@ -1,0 +1,35 @@
+{{- if .Values.service.enabled -}}
+{{- $svcPort := .Values.service.port -}}
+{{- $fullName := .Values.gitlab.app -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullName | quote }}
+  labels:
+{{ include "chart.labels" . | indent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app.kubernetes.io/name: {{ $fullName | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+  - port: {{ $svcPort }}
+    protocol: TCP
+    targetPort: main-port
+{{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.testDb.name | quote }}
+  labels:
+{{ include "chart.labels" . | indent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app.kubernetes.io/name: {{ .Values.testDb.name | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+  - port: 3306
+    protocol: TCP
+    targetPort: mysql-port
